@@ -31,6 +31,46 @@
   "dkimTokens" ($dkimAttributes.tokens | default list)
 ))) }}
 
+
+# ==============================================================================
+# SES dedicated IP pool
+# ==============================================================================
+{{- $dedicatedPoolEntry := get $raw "dedicated-ip-pool" | default dict }}
+{{- $dedicatedPoolResource := $dedicatedPoolEntry.resource | default dict }}
+{{- $dedicatedPoolStatus := $dedicatedPoolResource.status | default dict }}
+{{- $dedicatedPoolAtProvider := $dedicatedPoolStatus.atProvider | default dict }}
+{{- $dedicatedPoolReady := false }}
+{{- range ($dedicatedPoolStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $dedicatedPoolReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "dedicatedIpPool" (dict
+  "ready" $dedicatedPoolReady
+  "arn" ($dedicatedPoolAtProvider.arn | default "")
+  "id" ($dedicatedPoolAtProvider.id | default "")
+  "scalingMode" ($dedicatedPoolAtProvider.scalingMode | default "")
+))) }}
+
+# ==============================================================================
+# SES configuration set
+# ==============================================================================
+{{- $configurationSetEntry := get $raw "configuration-set" | default dict }}
+{{- $configurationSetResource := $configurationSetEntry.resource | default dict }}
+{{- $configurationSetStatus := $configurationSetResource.status | default dict }}
+{{- $configurationSetAtProvider := $configurationSetStatus.atProvider | default dict }}
+{{- $configurationSetReady := false }}
+{{- range ($configurationSetStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $configurationSetReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "configurationSet" (dict
+  "ready" $configurationSetReady
+  "arn" ($configurationSetAtProvider.arn | default "")
+  "id" ($configurationSetAtProvider.id | default "")
+))) }}
+
 # ==============================================================================
 # IAM user
 # ==============================================================================

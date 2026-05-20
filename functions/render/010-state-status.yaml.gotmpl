@@ -16,6 +16,9 @@
 {{- if $eff.pushCredentials.enabled }}
   {{- $ready = and $ready ($obs.secret.ready | default false) ($obs.secretVersion.ready | default false) }}
 {{- end }}
+{{- if $eff.dedicatedIpPool.enabled }}
+  {{- $ready = and $ready ($obs.dedicatedIpPool.ready | default false) ($obs.configurationSet.ready | default false) }}
+{{- end }}
 
 {{- $state = set $state "status" (dict
   "ready" $ready
@@ -37,6 +40,15 @@
   )
   "ses" (dict
     "identityArn" ($obs.identity.arn | default "")
+    "dedicatedIpPool" (dict
+      "arn" ($obs.dedicatedIpPool.arn | default "")
+      "name" ($obs.dedicatedIpPool.id | default "")
+      "scalingMode" ($obs.dedicatedIpPool.scalingMode | default "")
+    )
+    "configurationSet" (dict
+      "arn" ($obs.configurationSet.arn | default "")
+      "name" ($obs.configurationSet.id | default "")
+    )
   )
   "secret" (dict
     "arn" ($obs.secret.arn | default "")

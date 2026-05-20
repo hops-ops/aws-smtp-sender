@@ -13,6 +13,7 @@ EXAMPLES := \
 	examples/smtpsenders/minimal.yaml:: \
 	examples/smtpsenders/minimal.yaml::examples/test/mocks/observed-resources/ready/steps/1/ \
 	examples/smtpsenders/push-disabled.yaml:: \
+	examples/smtpsenders/dedicated-ip-pool.yaml:: \
 	examples/smtpsenders/full-schema.yaml::
 
 clean:

@@ -26,5 +26,12 @@ status:
     policyArn: {{ $s.iam.policyArn | quote }}
   ses:
     identityArn: {{ $s.ses.identityArn | quote }}
+    dedicatedIpPool:
+      arn: {{ $s.ses.dedicatedIpPool.arn | quote }}
+      name: {{ $s.ses.dedicatedIpPool.name | quote }}
+      scalingMode: {{ $s.ses.dedicatedIpPool.scalingMode | quote }}
+    configurationSet:
+      arn: {{ $s.ses.configurationSet.arn | quote }}
+      name: {{ $s.ses.configurationSet.name | quote }}
   secret:
     arn: {{ $s.secret.arn | quote }}

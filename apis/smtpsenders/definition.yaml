@@ -132,6 +132,85 @@ spec:
                       additionalProperties:
                         type: string
                       x-kubernetes-preserve-unknown-fields: true
+                dedicatedIpPool:
+                  type: object
+                  description: Optional SES dedicated IP pool. Disabled by default because dedicated IP pools are cost-bearing AWS resources.
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Whether to create an SES dedicated IP pool and configuration set.
+                      default: false
+                    name:
+                      type: string
+                      description: Kubernetes resource name for the DedicatedIPPool. Defaults to <xrName>-smtp.
+                    externalName:
+                      type: string
+                      description: External SES dedicated IP pool name. Defaults to name.
+                    scalingMode:
+                      type: string
+                      description: SES dedicated IP pool scaling mode.
+                      enum:
+                        - MANAGED
+                        - STANDARD
+                      default: MANAGED
+                    tags:
+                      type: object
+                      description: Additional tags applied only to the DedicatedIPPool.
+                      additionalProperties:
+                        type: string
+                      x-kubernetes-preserve-unknown-fields: true
+                configurationSet:
+                  type: object
+                  description: SES configuration set created when dedicatedIpPool.enabled is true.
+                  properties:
+                    name:
+                      type: string
+                      description: Kubernetes resource name for the ConfigurationSet. Defaults to <xrName>-smtp.
+                    externalName:
+                      type: string
+                      description: External SES configuration set name. Defaults to name.
+                    deliveryOptions:
+                      type: object
+                      description: Delivery options for the SES configuration set.
+                      properties:
+                        tlsPolicy:
+                          type: string
+                          description: TLS policy for messages sent with this configuration set.
+                          enum:
+                            - REQUIRE
+                            - OPTIONAL
+                          default: REQUIRE
+                        maxDeliverySeconds:
+                          type: integer
+                          description: Maximum time SES attempts delivery, from 300 to 50400 seconds.
+                          minimum: 300
+                          maximum: 50400
+                          default: 50400
+                    reputationMetricsEnabled:
+                      type: boolean
+                      description: Whether SES reputation metrics are enabled for the configuration set.
+                      default: true
+                    sendingEnabled:
+                      type: boolean
+                      description: Whether sending is enabled for the configuration set.
+                      default: true
+                    suppressionReasons:
+                      type: array
+                      description: Suppression-list reasons for the configuration set.
+                      items:
+                        type: string
+                        enum:
+                          - BOUNCE
+                          - COMPLAINT
+                      default:
+                        - BOUNCE
+                        - COMPLAINT
+                    tags:
+                      type: object
+                      description: Additional tags applied only to the ConfigurationSet.
+                      additionalProperties:
+                        type: string
+                      x-kubernetes-preserve-unknown-fields: true
                 aws:
                   type: object
                   description: AWS-specific extension point.
@@ -200,6 +279,29 @@ spec:
                     identityArn:
                       type: string
                       description: ARN of the SESv2 EmailIdentity.
+                    dedicatedIpPool:
+                      type: object
+                      description: Observed state for the optional SES DedicatedIPPool.
+                      properties:
+                        arn:
+                          type: string
+                          description: ARN of the SES DedicatedIPPool.
+                        name:
+                          type: string
+                          description: Observed SES dedicated IP pool name.
+                        scalingMode:
+                          type: string
+                          description: Observed SES dedicated IP pool scaling mode.
+                    configurationSet:
+                      type: object
+                      description: Observed state for the optional SES ConfigurationSet.
+                      properties:
+                        arn:
+                          type: string
+                          description: ARN of the SES ConfigurationSet.
+                        name:
+                          type: string
+                          description: Observed SES configuration set name.
                 secret:
                   type: object
                   properties:

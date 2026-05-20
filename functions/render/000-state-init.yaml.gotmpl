@@ -67,6 +67,32 @@
   "hops.ops.com.ai/apiVersion" $xr.apiVersion
 ) ($pushSpec.tags | default dict) }}
 
+# Dedicated IP pool and configuration set. Disabled by default because SES
+# dedicated IP pools are cost-bearing resources.
+{{- $dedicatedSpec := $spec.dedicatedIpPool | default dict }}
+{{- $dedicatedEnabled := false }}
+{{- if hasKey $dedicatedSpec "enabled" }}
+  {{- $dedicatedEnabled = $dedicatedSpec.enabled }}
+{{- end }}
+{{- $dedicatedName := $dedicatedSpec.name | default (printf "%s-smtp" $name) }}
+{{- $dedicatedExternalName := $dedicatedSpec.externalName | default $dedicatedName }}
+{{- $dedicatedTags := merge (dict) $tags ($dedicatedSpec.tags | default dict) }}
+
+{{- $configurationSetSpec := $spec.configurationSet | default dict }}
+{{- $configurationSetName := $configurationSetSpec.name | default (printf "%s-smtp" $name) }}
+{{- $configurationSetExternalName := $configurationSetSpec.externalName | default $configurationSetName }}
+{{- $configurationSetTags := merge (dict) $tags ($configurationSetSpec.tags | default dict) }}
+{{- $deliveryOptionsSpec := $configurationSetSpec.deliveryOptions | default dict }}
+{{- $reputationMetricsEnabled := true }}
+{{- if hasKey $configurationSetSpec "reputationMetricsEnabled" }}
+  {{- $reputationMetricsEnabled = $configurationSetSpec.reputationMetricsEnabled }}
+{{- end }}
+{{- $sendingEnabled := true }}
+{{- if hasKey $configurationSetSpec "sendingEnabled" }}
+  {{- $sendingEnabled = $configurationSetSpec.sendingEnabled }}
+{{- end }}
+{{- $suppressionReasons := $configurationSetSpec.suppressionReasons | default (list "BOUNCE" "COMPLAINT") }}
+
 # ==============================================================================
 # Initialize $state namespace
 # ==============================================================================
@@ -121,6 +147,25 @@
         "secretVersion" (dict
           "name" (printf "%s-smtp-version" $name)
         )
+      )
+      "dedicatedIpPool" (dict
+        "enabled" $dedicatedEnabled
+        "name" $dedicatedName
+        "externalName" $dedicatedExternalName
+        "scalingMode" ($dedicatedSpec.scalingMode | default "MANAGED")
+        "tags" $dedicatedTags
+      )
+      "configurationSet" (dict
+        "name" $configurationSetName
+        "externalName" $configurationSetExternalName
+        "deliveryOptions" (dict
+          "tlsPolicy" ($deliveryOptionsSpec.tlsPolicy | default "REQUIRE")
+          "maxDeliverySeconds" ($deliveryOptionsSpec.maxDeliverySeconds | default 50400)
+        )
+        "reputationMetricsEnabled" $reputationMetricsEnabled
+        "sendingEnabled" $sendingEnabled
+        "suppressionReasons" $suppressionReasons
+        "tags" $configurationSetTags
       )
     )
   )

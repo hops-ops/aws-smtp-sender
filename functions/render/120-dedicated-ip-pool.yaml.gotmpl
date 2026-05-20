@@ -1,0 +1,80 @@
+# code: language=yaml
+#
+# Optional SESv2 dedicated IP pool and configuration set. This is disabled
+# by default because dedicated IP pools are cost-bearing AWS resources.
+#
+{{- if $state.smtpSender.dedicatedIpPool.enabled }}
+{{- $pool := $state.smtpSender.dedicatedIpPool }}
+{{- $configurationSet := $state.smtpSender.configurationSet }}
+---
+apiVersion: sesv2.aws.m.upbound.io/v1beta1
+kind: DedicatedIPPool
+metadata:
+  name: {{ $pool.name }}
+  annotations:
+    {{ setResourceNameAnnotation "dedicated-ip-pool" }}
+    crossplane.io/external-name: {{ $pool.externalName }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    region: {{ $state.smtpSender.region }}
+    scalingMode: {{ $pool.scalingMode }}
+    tags: {{ merge (dict "Name" $pool.externalName) $pool.tags | toJson }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}
+
+{{- if $state.observed.dedicatedIpPool.ready }}
+---
+apiVersion: sesv2.aws.m.upbound.io/v1beta1
+kind: ConfigurationSet
+metadata:
+  name: {{ $configurationSet.name }}
+  annotations:
+    {{ setResourceNameAnnotation "configuration-set" }}
+    crossplane.io/external-name: {{ $configurationSet.externalName }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    region: {{ $state.smtpSender.region }}
+    deliveryOptions:
+      sendingPoolName: {{ $pool.externalName }}
+      tlsPolicy: {{ $configurationSet.deliveryOptions.tlsPolicy }}
+      maxDeliverySeconds: {{ $configurationSet.deliveryOptions.maxDeliverySeconds }}
+    reputationOptions:
+      reputationMetricsEnabled: {{ $configurationSet.reputationMetricsEnabled }}
+    sendingOptions:
+      sendingEnabled: {{ $configurationSet.sendingEnabled }}
+    suppressionOptions:
+      suppressedReasons: {{ $configurationSet.suppressionReasons | toJson }}
+    tags: {{ merge (dict "Name" $configurationSet.externalName) $configurationSet.tags | toJson }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}
+{{- end }}
+
+{{- if and $state.observed.dedicatedIpPool.ready $state.observed.configurationSet.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.smtpSender.name }}-delete-configuration-set-before-dedicated-ip-pool
+  annotations:
+    {{ setResourceNameAnnotation "usage-configuration-set-dedicated-ip-pool" }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: sesv2.aws.m.upbound.io/v1beta1
+    kind: DedicatedIPPool
+    resourceRef:
+      name: {{ $pool.name }}
+  by:
+    apiVersion: sesv2.aws.m.upbound.io/v1beta1
+    kind: ConfigurationSet
+    resourceRef:
+      name: {{ $configurationSet.name }}
+{{- end }}
+{{- end }}
