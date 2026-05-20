@@ -1,0 +1,32 @@
+apiVersion: meta.dev.upbound.io/v2alpha1
+kind: Project
+metadata:
+  name: aws-smtp-sender
+spec:
+  dependsOn:
+  - apiVersion: pkg.crossplane.io/v1
+    kind: Provider
+    package: xpkg.crossplane.io/crossplane-contrib/provider-aws-iam
+    version: '>=v2'
+  - apiVersion: pkg.crossplane.io/v1
+    kind: Provider
+    package: xpkg.crossplane.io/crossplane-contrib/provider-aws-sesv2
+    version: '>=v2'
+  - apiVersion: pkg.crossplane.io/v1
+    kind: Provider
+    package: xpkg.crossplane.io/crossplane-contrib/provider-aws-secretsmanager
+    version: '>=v2'
+  - apiVersion: pkg.crossplane.io/v1
+    kind: Function
+    package: xpkg.crossplane.io/crossplane-contrib/function-auto-ready
+    version: '>=v0.6.4'
+  description: Provisions an SESv2 identity, IAM SMTP credentials, and an AWS Secrets
+    Manager entry for outbound SMTP.
+  license: Apache-2.0
+  maintainer: Patrick Lee Scott <pat@patscott.io>
+  readme: |
+    # aws-smtp-sender
+
+    Provisions SES-backed outbound SMTP for a sender domain.
+  repository: ghcr.io/hops-ops/aws-smtp-sender
+  source: github.com/hops-ops/aws-smtp-sender

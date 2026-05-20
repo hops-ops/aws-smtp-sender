@@ -1,0 +1,125 @@
+# code: language=yaml
+#
+# IAM user, send policy, and policy attachment for SES SMTP.
+#
+{{- $iam := $state.smtpSender.iam }}
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: User
+metadata:
+  name: {{ $iam.user.name }}
+  annotations:
+    {{ setResourceNameAnnotation "iam-user" }}
+    crossplane.io/external-name: {{ $iam.user.externalName }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    forceDestroy: true
+    {{- if $iam.user.permissionsBoundaryArn }}
+    permissionsBoundary: {{ $iam.user.permissionsBoundaryArn }}
+    {{- end }}
+    tags: {{ merge (dict "Name" $iam.user.name) $state.smtpSender.tags | toJson }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}
+
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: Policy
+metadata:
+  name: {{ $iam.policy.name }}
+  annotations:
+    {{ setResourceNameAnnotation "iam-policy" }}
+    crossplane.io/external-name: {{ $iam.policy.externalName }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "AllowSendRawEmailForDomain",
+            "Effect": "Allow",
+            "Action": [
+              "ses:SendRawEmail"
+            ],
+            "Resource": [
+              "{{ $iam.policy.resourceArn }}"
+            ]
+          }
+        ]
+      }
+    tags: {{ merge (dict "Name" $iam.policy.name) $state.smtpSender.tags | toJson }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}
+
+{{- if and $state.observed.user.ready $state.observed.policy.ready }}
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: UserPolicyAttachment
+metadata:
+  name: {{ $iam.attachment.name }}
+  annotations:
+    {{ setResourceNameAnnotation "iam-policy-attachment" }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    userRef:
+      name: {{ $iam.user.name }}
+    policyArnRef:
+      name: {{ $iam.policy.name }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}
+{{- end }}
+
+{{- if and $state.observed.user.ready $state.observed.attachment.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.smtpSender.name }}-delete-policy-attachment-before-user
+  annotations:
+    {{ setResourceNameAnnotation "usage-attachment-user" }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: iam.aws.m.upbound.io/v1beta1
+    kind: User
+    resourceRef:
+      name: {{ $iam.user.name }}
+  by:
+    apiVersion: iam.aws.m.upbound.io/v1beta1
+    kind: UserPolicyAttachment
+    resourceRef:
+      name: {{ $iam.attachment.name }}
+{{- end }}
+
+{{- if and $state.observed.policy.ready $state.observed.attachment.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.smtpSender.name }}-delete-policy-attachment-before-policy
+  annotations:
+    {{ setResourceNameAnnotation "usage-attachment-policy" }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: iam.aws.m.upbound.io/v1beta1
+    kind: Policy
+    resourceRef:
+      name: {{ $iam.policy.name }}
+  by:
+    apiVersion: iam.aws.m.upbound.io/v1beta1
+    kind: UserPolicyAttachment
+    resourceRef:
+      name: {{ $iam.attachment.name }}
+{{- end }}

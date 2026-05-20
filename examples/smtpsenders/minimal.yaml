@@ -1,0 +1,11 @@
+apiVersion: aws.hops.ops.com.ai/v1alpha1
+kind: SMTPSender
+metadata:
+  name: ops
+  namespace: default
+spec:
+  domain: ops.com.ai
+  clusterName: pat-local
+  region: us-east-2
+  managementPolicies:
+    - "*"

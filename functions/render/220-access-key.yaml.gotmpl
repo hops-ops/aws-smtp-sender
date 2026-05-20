@@ -1,0 +1,52 @@
+# code: language=yaml
+#
+# IAM AccessKey. Upjet writes attribute.ses_smtp_password_v4 into the connection Secret.
+#
+{{- $iam := $state.smtpSender.iam }}
+{{- if $state.observed.user.ready }}
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: AccessKey
+metadata:
+  name: {{ $iam.accessKey.name }}
+  annotations:
+    {{ setResourceNameAnnotation "iam-access-key" }}
+    {{- if $iam.accessKey.externalName }}
+    crossplane.io/external-name: {{ $iam.accessKey.externalName }}
+    {{- end }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    userRef:
+      name: {{ $iam.user.name }}
+    status: Active
+  writeConnectionSecretToRef:
+    name: {{ $iam.accessKey.connectionSecretName }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}
+{{- end }}
+
+{{- if and $state.observed.user.ready $state.observed.accessKey.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.smtpSender.name }}-delete-access-key-before-user
+  annotations:
+    {{ setResourceNameAnnotation "usage-access-key-user" }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: iam.aws.m.upbound.io/v1beta1
+    kind: User
+    resourceRef:
+      name: {{ $iam.user.name }}
+  by:
+    apiVersion: iam.aws.m.upbound.io/v1beta1
+    kind: AccessKey
+    resourceRef:
+      name: {{ $iam.accessKey.name }}
+{{- end }}

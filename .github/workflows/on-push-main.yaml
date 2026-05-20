@@ -1,0 +1,72 @@
+name: on-push-main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/on-push-main.yaml'
+      - '.github/workflows/on-version-tagged.yaml'
+      - 'apis/**'
+      - 'examples/**'
+      - 'functions/**'
+      - 'tests/**'
+      - 'upbound.yaml'
+
+permissions:
+  packages: write
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  validate:
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/validate.yaml@v2.20.0
+    with:
+      examples: |
+        [
+          { "example": "examples/smtpsenders/minimal.yaml" },
+          { "example": "examples/smtpsenders/minimal.yaml", "observed_resources": "examples/test/mocks/observed-resources/ready/steps/1/" },
+          { "example": "examples/smtpsenders/push-disabled.yaml" },
+          { "example": "examples/smtpsenders/full-schema.yaml" }
+        ]
+      api_path: apis/smtpsenders
+      error_on_missing_schemas: true
+
+  test:
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/test.yaml@v2.20.0
+
+  e2e:
+    uses: unbounded-tech/workflows-crossplane/.github/workflows/e2e.yaml@v2.20.0
+    with:
+      aws: true
+      aws-use-oidc: true
+      aws-account-id: "${{ vars.AWS_ACCOUNT_ID }}"
+      aws-region: "${{ vars.AWS_REGION }}"
+      debug-resource-types: |
+        [
+          "smtpsenders.aws.hops.ops.com.ai",
+          "emailidentities.sesv2.aws.m.upbound.io",
+          "users.iam.aws.m.upbound.io",
+          "policies.iam.aws.m.upbound.io",
+          "userpolicyattachments.iam.aws.m.upbound.io",
+          "accesskeys.iam.aws.m.upbound.io",
+          "secrets.secretsmanager.aws.m.upbound.io",
+          "secretversions.secretsmanager.aws.m.upbound.io"
+        ]
+      timeout-minutes: 45
+      cleanup-timeout-minutes: 45
+      write-env-files: true
+
+  version-and-tag:
+    name: Version and Tag
+    needs:
+      - validate
+      - test
+      - e2e
+    uses: unbounded-tech/workflow-vnext-tag/.github/workflows/workflow.yaml@v1.21.0
+    secrets:
+      DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+    with:
+      useDeployKey: true

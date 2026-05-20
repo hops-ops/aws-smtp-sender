@@ -1,0 +1,129 @@
+# code: language=yaml
+#
+# Initialize $state with spec.raw and spec.effective.
+#
+
+{{- $xr := getCompositeResource . }}
+{{- $metadata := $xr.metadata | default dict }}
+{{- $spec := $xr.spec | default dict }}
+
+# ==============================================================================
+# Build spec.effective with all defaults applied
+# ==============================================================================
+
+{{- $name := $metadata.name | default "smtp-sender" }}
+{{- $namespace := $metadata.namespace | default "default" }}
+{{- $domain := $spec.domain | default "" }}
+{{- $clusterName := $spec.clusterName | default "" }}
+{{- $region := $spec.region | default "us-east-2" }}
+{{- $accountId := $spec.accountId | default "*" }}
+{{- $managementPolicies := $spec.managementPolicies | default (list "*") }}
+
+{{- $providerSpec := $spec.providerConfigRef | default ($spec.awsProviderConfigRef | default dict) }}
+{{- $providerConfigName := $providerSpec.name | default $clusterName | default "default" }}
+{{- $providerConfigKind := $providerSpec.kind | default "ProviderConfig" }}
+{{- $providerConfigRef := dict
+  "name" $providerConfigName
+  "kind" $providerConfigKind
+}}
+
+# Default labels/tags: managed=true + <kind>=<name>
+{{- $defaults := dict
+  "hops.ops.com.ai/managed" "true"
+  (printf "hops.ops.com.ai/%s" (lower $xr.kind)) $name
+}}
+{{- $labels := merge (dict) $defaults ($spec.labels | default dict) }}
+{{- $aws := $spec.aws | default dict }}
+{{- $tags := merge (dict) $defaults ($spec.tags | default dict) ($aws.tags | default dict) }}
+
+# SES identity
+{{- $identitySpec := $spec.identity | default dict }}
+{{- $identityExternalName := $identitySpec.externalName | default $domain }}
+{{- $dkimSigningKeyLength := $identitySpec.dkimSigningKeyLength | default "RSA_2048_BIT" }}
+
+# IAM
+{{- $iamSpec := $spec.iam | default dict }}
+{{- $userName := $iamSpec.userName | default (printf "%s-smtp" $name) }}
+{{- $policyName := printf "%s-send-email" $userName }}
+{{- $accessKeyName := printf "%s-access-key" $userName }}
+{{- $accessKeySecretName := printf "%s-access-key" $userName }}
+{{- $policyAccount := $accountId | default "*" }}
+{{- $sendPolicyResourceArn := printf "arn:aws:ses:%s:%s:identity/%s" $region $policyAccount $domain }}
+
+# Push credentials
+{{- $pushSpec := $spec.pushCredentials | default dict }}
+{{- $pushEnabled := true }}
+{{- if hasKey $pushSpec "enabled" }}
+  {{- $pushEnabled = $pushSpec.enabled }}
+{{- end }}
+{{- $pushPath := $pushSpec.path | default (printf "push/%s/%s-smtp" $clusterName $name) }}
+{{- $secretTags := merge (dict) $tags (dict
+  "hops.ops.com.ai/secret" "true"
+  "hops.ops.com.ai/managed-by" "mr"
+  "hops.ops.com.ai/cluster" $clusterName
+  "hops.ops.com.ai/namespace" $namespace
+  "hops.ops.com.ai/kind" $xr.kind
+  "hops.ops.com.ai/name" $name
+  "hops.ops.com.ai/apiVersion" $xr.apiVersion
+) ($pushSpec.tags | default dict) }}
+
+# ==============================================================================
+# Initialize $state namespace
+# ==============================================================================
+{{- $state := dict
+  "spec" (dict
+    "raw" $spec
+    "effective" (dict
+      "name" $name
+      "namespace" $namespace
+      "domain" $domain
+      "clusterName" $clusterName
+      "region" $region
+      "accountId" $accountId
+      "managementPolicies" $managementPolicies
+      "providerConfigRef" $providerConfigRef
+      "labels" $labels
+      "tags" $tags
+      "identity" (dict
+        "name" $name
+        "externalName" $identityExternalName
+        "dkimSigningKeyLength" $dkimSigningKeyLength
+      )
+      "iam" (dict
+        "user" (dict
+          "name" $userName
+          "externalName" ($iamSpec.userExternalName | default $userName)
+          "permissionsBoundaryArn" ($iamSpec.permissionsBoundaryArn | default "")
+        )
+        "policy" (dict
+          "name" $policyName
+          "externalName" ($iamSpec.policyExternalName | default $policyName)
+          "resourceArn" $sendPolicyResourceArn
+        )
+        "attachment" (dict
+          "name" (printf "%s-policy" $userName)
+        )
+        "accessKey" (dict
+          "name" $accessKeyName
+          "externalName" ($iamSpec.accessKeyExternalName | default "")
+          "connectionSecretName" $accessKeySecretName
+          "smtpPasswordKey" "attribute.ses_smtp_password_v4"
+        )
+      )
+      "pushCredentials" (dict
+        "enabled" $pushEnabled
+        "path" $pushPath
+        "secret" (dict
+          "name" (printf "%s-smtp" $name)
+          "path" $pushPath
+          "tags" $secretTags
+        )
+        "secretVersion" (dict
+          "name" (printf "%s-smtp-version" $name)
+        )
+      )
+    )
+  )
+  "observed" (dict)
+  "smtpSender" (dict)
+}}

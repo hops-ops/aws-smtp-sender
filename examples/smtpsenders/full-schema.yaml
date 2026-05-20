@@ -1,0 +1,34 @@
+apiVersion: aws.hops.ops.com.ai/v1alpha1
+kind: SMTPSender
+metadata:
+  name: ops
+  namespace: default
+spec:
+  domain: ops.com.ai
+  clusterName: pat-local
+  region: us-east-2
+  accountId: "034489662075"
+  managementPolicies:
+    - "*"
+  labels:
+    environment: dogfood
+    team: platform
+  tags:
+    Environment: dogfood
+    Team: platform
+  providerConfigRef:
+    name: default
+    kind: ProviderConfig
+  identity:
+    dkimSigningKeyLength: RSA_2048_BIT
+  iam:
+    userName: ops-smtp
+    permissionsBoundaryArn: arn:aws:iam::034489662075:policy/platform-boundary
+  pushCredentials:
+    enabled: true
+    path: push/pat-local/ops-smtp
+    tags:
+      Purpose: outbound-mail
+  aws:
+    tags:
+      CostCenter: platform

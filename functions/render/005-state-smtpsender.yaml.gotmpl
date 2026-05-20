@@ -1,0 +1,23 @@
+# code: language=yaml
+#
+# Set $state.smtpSender computed state for rendering.
+#
+
+{{- $eff := $state.spec.effective }}
+
+{{- $smtpSender := dict
+  "name" $eff.name
+  "namespace" $eff.namespace
+  "domain" $eff.domain
+  "clusterName" $eff.clusterName
+  "region" $eff.region
+  "providerConfig" $eff.providerConfigRef
+  "managementPolicies" $eff.managementPolicies
+  "labels" $eff.labels
+  "tags" $eff.tags
+  "identity" $eff.identity
+  "iam" $eff.iam
+  "pushCredentials" $eff.pushCredentials
+}}
+
+{{- $state = set $state "smtpSender" $smtpSender }}

@@ -1,0 +1,23 @@
+# code: language=yaml
+#
+# SESv2 EmailIdentity for the sender domain.
+#
+---
+apiVersion: sesv2.aws.m.upbound.io/v1beta1
+kind: EmailIdentity
+metadata:
+  name: {{ $state.smtpSender.identity.name }}
+  annotations:
+    {{ setResourceNameAnnotation "email-identity" }}
+    crossplane.io/external-name: {{ $state.smtpSender.identity.externalName }}
+  labels: {{ $state.smtpSender.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    region: {{ $state.smtpSender.region }}
+    dkimSigningAttributes:
+      nextSigningKeyLength: {{ $state.smtpSender.identity.dkimSigningKeyLength }}
+    tags: {{ merge (dict "Name" $state.smtpSender.identity.externalName) $state.smtpSender.tags | toJson }}
+  providerConfigRef:
+    name: {{ $state.smtpSender.providerConfig.name }}
+    kind: {{ $state.smtpSender.providerConfig.kind }}

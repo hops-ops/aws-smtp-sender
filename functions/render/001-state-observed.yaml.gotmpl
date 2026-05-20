@@ -1,0 +1,144 @@
+# code: language=yaml
+#
+# Set observed resource slices from Crossplane observed state.
+#
+
+{{- $raw := $.observed.resources | default dict }}
+
+# ==============================================================================
+# SES identity
+# ==============================================================================
+{{- $identityEntry := get $raw "email-identity" | default dict }}
+{{- $identityResource := $identityEntry.resource | default dict }}
+{{- $identityStatus := $identityResource.status | default dict }}
+{{- $identityAtProvider := $identityStatus.atProvider | default dict }}
+{{- $identityReady := false }}
+{{- range ($identityStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $identityReady = true }}
+  {{- end }}
+{{- end }}
+{{- $dkimAttributes := $identityAtProvider.dkimSigningAttributes | default dict }}
+{{- if kindIs "slice" $dkimAttributes }}
+  {{- $dkimAttributes = (first $dkimAttributes | default dict) }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "identity" (dict
+  "ready" $identityReady
+  "arn" ($identityAtProvider.arn | default "")
+  "verifiedForSendingStatus" ($identityAtProvider.verifiedForSendingStatus | default false)
+  "verificationStatus" ($identityAtProvider.verificationStatus | default "")
+  "dkimStatus" ($dkimAttributes.status | default "")
+  "dkimTokens" ($dkimAttributes.tokens | default list)
+))) }}
+
+# ==============================================================================
+# IAM user
+# ==============================================================================
+{{- $userEntry := get $raw "iam-user" | default dict }}
+{{- $userResource := $userEntry.resource | default dict }}
+{{- $userStatus := $userResource.status | default dict }}
+{{- $userAtProvider := $userStatus.atProvider | default dict }}
+{{- $userReady := false }}
+{{- range ($userStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $userReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "user" (dict
+  "ready" $userReady
+  "arn" ($userAtProvider.arn | default "")
+  "id" ($userAtProvider.id | default "")
+))) }}
+
+# ==============================================================================
+# IAM policy
+# ==============================================================================
+{{- $policyEntry := get $raw "iam-policy" | default dict }}
+{{- $policyResource := $policyEntry.resource | default dict }}
+{{- $policyStatus := $policyResource.status | default dict }}
+{{- $policyAtProvider := $policyStatus.atProvider | default dict }}
+{{- $policyReady := false }}
+{{- range ($policyStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $policyReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "policy" (dict
+  "ready" $policyReady
+  "arn" ($policyAtProvider.arn | default "")
+  "id" ($policyAtProvider.id | default "")
+))) }}
+
+# ==============================================================================
+# IAM policy attachment
+# ==============================================================================
+{{- $attachmentEntry := get $raw "iam-policy-attachment" | default dict }}
+{{- $attachmentResource := $attachmentEntry.resource | default dict }}
+{{- $attachmentStatus := $attachmentResource.status | default dict }}
+{{- $attachmentAtProvider := $attachmentStatus.atProvider | default dict }}
+{{- $attachmentReady := false }}
+{{- range ($attachmentStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $attachmentReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "attachment" (dict
+  "ready" $attachmentReady
+  "id" ($attachmentAtProvider.id | default "")
+))) }}
+
+# ==============================================================================
+# IAM access key
+# ==============================================================================
+{{- $accessKeyEntry := get $raw "iam-access-key" | default dict }}
+{{- $accessKeyResource := $accessKeyEntry.resource | default dict }}
+{{- $accessKeyStatus := $accessKeyResource.status | default dict }}
+{{- $accessKeyAtProvider := $accessKeyStatus.atProvider | default dict }}
+{{- $accessKeyConnection := $accessKeyEntry.connectionDetails | default dict }}
+{{- $accessKeyReady := false }}
+{{- range ($accessKeyStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $accessKeyReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "accessKey" (dict
+  "ready" $accessKeyReady
+  "id" ($accessKeyAtProvider.id | default "")
+  "username" ($accessKeyAtProvider.id | default ($accessKeyConnection.username | default ""))
+))) }}
+
+# ==============================================================================
+# AWS Secrets Manager secret
+# ==============================================================================
+{{- $secretEntry := get $raw "secrets-manager-secret" | default dict }}
+{{- $secretResource := $secretEntry.resource | default dict }}
+{{- $secretStatus := $secretResource.status | default dict }}
+{{- $secretAtProvider := $secretStatus.atProvider | default dict }}
+{{- $secretReady := false }}
+{{- range ($secretStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $secretReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "secret" (dict
+  "ready" $secretReady
+  "arn" ($secretAtProvider.arn | default ($secretAtProvider.id | default ""))
+))) }}
+
+# ==============================================================================
+# AWS Secrets Manager secret version
+# ==============================================================================
+{{- $secretVersionEntry := get $raw "secrets-manager-secret-version" | default dict }}
+{{- $secretVersionResource := $secretVersionEntry.resource | default dict }}
+{{- $secretVersionStatus := $secretVersionResource.status | default dict }}
+{{- $secretVersionAtProvider := $secretVersionStatus.atProvider | default dict }}
+{{- $secretVersionReady := false }}
+{{- range ($secretVersionStatus.conditions | default list) }}
+  {{- if and (eq .type "Ready") (eq .status "True") }}
+    {{- $secretVersionReady = true }}
+  {{- end }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "secretVersion" (dict
+  "ready" $secretVersionReady
+  "id" ($secretVersionAtProvider.id | default "")
+))) }}

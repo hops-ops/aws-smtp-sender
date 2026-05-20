@@ -1,0 +1,44 @@
+# code: language=yaml
+#
+# Compute $state.status from observed resource state.
+#
+
+{{- $eff := $state.spec.effective }}
+{{- $obs := $state.observed }}
+
+{{- $ready := and
+  ($obs.identity.ready | default false)
+  ($obs.user.ready | default false)
+  ($obs.policy.ready | default false)
+  ($obs.attachment.ready | default false)
+  ($obs.accessKey.ready | default false)
+}}
+{{- if $eff.pushCredentials.enabled }}
+  {{- $ready = and $ready ($obs.secret.ready | default false) ($obs.secretVersion.ready | default false) }}
+{{- end }}
+
+{{- $state = set $state "status" (dict
+  "ready" $ready
+  "smtp" (dict
+    "host" (printf "email-smtp.%s.amazonaws.com" $eff.region)
+    "port" 587
+    "username" ($obs.accessKey.username | default "")
+    "awsSecretsManagerPath" $eff.pushCredentials.path
+  )
+  "dkim" (dict
+    "verified" ($obs.identity.verifiedForSendingStatus | default false)
+    "verificationStatus" ($obs.identity.verificationStatus | default "")
+    "status" ($obs.identity.dkimStatus | default "")
+    "tokens" ($obs.identity.dkimTokens | default list)
+  )
+  "iam" (dict
+    "userArn" ($obs.user.arn | default "")
+    "policyArn" ($obs.policy.arn | default "")
+  )
+  "ses" (dict
+    "identityArn" ($obs.identity.arn | default "")
+  )
+  "secret" (dict
+    "arn" ($obs.secret.arn | default "")
+  )
+) }}

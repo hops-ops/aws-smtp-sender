@@ -1,0 +1,123 @@
+# SESv2 identity is Ready and exposes DKIM tokens.
+apiVersion: sesv2.aws.m.upbound.io/v1beta1
+kind: EmailIdentity
+metadata:
+  name: ops
+  annotations:
+    crossplane.io/composition-resource-name: email-identity
+    gotemplating.fn.crossplane.io/composition-resource-name: email-identity
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    arn: arn:aws:ses:us-east-2:034489662075:identity/ops.com.ai
+    verificationStatus: SUCCESS
+    verifiedForSendingStatus: true
+    dkimSigningAttributes:
+      status: SUCCESS
+      tokens:
+        - abcdefghijklmnopqrstu
+        - vwxyzabcdefghijklmnop
+        - qrstuvwxyzabcdefghijk
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: User
+metadata:
+  name: ops-smtp
+  annotations:
+    crossplane.io/composition-resource-name: iam-user
+    gotemplating.fn.crossplane.io/composition-resource-name: iam-user
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    arn: arn:aws:iam::034489662075:user/ops-smtp
+    id: ops-smtp
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: Policy
+metadata:
+  name: ops-smtp-send-email
+  annotations:
+    crossplane.io/composition-resource-name: iam-policy
+    gotemplating.fn.crossplane.io/composition-resource-name: iam-policy
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    arn: arn:aws:iam::034489662075:policy/ops-smtp-send-email
+    id: arn:aws:iam::034489662075:policy/ops-smtp-send-email
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: UserPolicyAttachment
+metadata:
+  name: ops-smtp-policy
+  annotations:
+    crossplane.io/composition-resource-name: iam-policy-attachment
+    gotemplating.fn.crossplane.io/composition-resource-name: iam-policy-attachment
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    id: ops-smtp/arn:aws:iam::034489662075:policy/ops-smtp-send-email
+---
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: AccessKey
+metadata:
+  name: ops-smtp-access-key
+  annotations:
+    crossplane.io/composition-resource-name: iam-access-key
+    gotemplating.fn.crossplane.io/composition-resource-name: iam-access-key
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    id: AKIAIOSFODNN7EXAMPLE
+---
+apiVersion: secretsmanager.aws.m.upbound.io/v1beta1
+kind: Secret
+metadata:
+  name: ops-smtp
+  annotations:
+    crossplane.io/composition-resource-name: secrets-manager-secret
+    gotemplating.fn.crossplane.io/composition-resource-name: secrets-manager-secret
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    arn: arn:aws:secretsmanager:us-east-2:034489662075:secret:push/pat-local/ops-smtp-AbCdEf
+    id: arn:aws:secretsmanager:us-east-2:034489662075:secret:push/pat-local/ops-smtp-AbCdEf
+---
+apiVersion: secretsmanager.aws.m.upbound.io/v1beta1
+kind: SecretVersion
+metadata:
+  name: ops-smtp-version
+  annotations:
+    crossplane.io/composition-resource-name: secrets-manager-secret-version
+    gotemplating.fn.crossplane.io/composition-resource-name: secrets-manager-secret-version
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+    - type: Synced
+      status: "True"
+  atProvider:
+    id: arn:aws:secretsmanager:us-east-2:034489662075:secret:push/pat-local/ops-smtp-AbCdEf|01234567-89ab-cdef-0123-456789abcdef
