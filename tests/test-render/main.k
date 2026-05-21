@@ -268,6 +268,283 @@ _items = [
         }
     },
 
+    # Enabling dedicatedIpPool renders the cost-bearing pool, but waits to
+    # render the ConfigurationSet until the pool is observed ready.
+    metav1alpha1.CompositionTest {
+        metadata.name = "dedicated-ip-pool-enabled-renders-pool"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = {
+                apiVersion = "aws.hops.ops.com.ai/v1alpha1"
+                kind = "SMTPSender"
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                    dedicatedIpPool = {
+                        enabled = True
+                        name = "ops-marketing-pool"
+                        externalName = "ops-marketing-pool"
+                        scalingMode = "MANAGED"
+                        tags = {
+                            Purpose = "marketing-mail"
+                        }
+                    }
+                    configurationSet = {
+                        name = "ops-marketing-config"
+                        externalName = "ops-marketing-config"
+                    }
+                }
+            }
+            assertResources = [
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "DedicatedIPPool"
+                    metadata.name = "ops-marketing-pool"
+                    metadata.annotations = {
+                        "crossplane.io/external-name" = "ops-marketing-pool"
+                    }
+                    spec.forProvider = {
+                        region = "us-east-2"
+                        scalingMode = "MANAGED"
+                        tags = {
+                            Name = "ops-marketing-pool"
+                            Purpose = "marketing-mail"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+
+    # Once the dedicated pool is ready, the ConfigurationSet can safely select it.
+    metav1alpha1.CompositionTest {
+        metadata.name = "ready-dedicated-ip-pool-renders-configuration-set"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = {
+                apiVersion = "aws.hops.ops.com.ai/v1alpha1"
+                kind = "SMTPSender"
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                    dedicatedIpPool = {
+                        enabled = True
+                        name = "ops-marketing-pool"
+                        externalName = "ops-marketing-pool"
+                        scalingMode = "MANAGED"
+                    }
+                    configurationSet = {
+                        name = "ops-marketing-config"
+                        externalName = "ops-marketing-config"
+                        deliveryOptions = {
+                            tlsPolicy = "OPTIONAL"
+                            maxDeliverySeconds = 300
+                        }
+                        reputationMetricsEnabled = False
+                        sendingEnabled = True
+                        suppressionReasons = ["BOUNCE"]
+                    }
+                }
+            }
+            observedResources = [
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "DedicatedIPPool"
+                    metadata.name = "ops-marketing-pool"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "dedicated-ip-pool"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider = {
+                        arn = "arn:aws:ses:us-east-2:034489662075:dedicated-ip-pool/ops-marketing-pool"
+                        id = "ops-marketing-pool"
+                        scalingMode = "MANAGED"
+                    }
+                }
+            ]
+            assertResources = [
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "ConfigurationSet"
+                    metadata.name = "ops-marketing-config"
+                    metadata.annotations = {
+                        "crossplane.io/external-name" = "ops-marketing-config"
+                    }
+                    spec.forProvider = {
+                        region = "us-east-2"
+                        deliveryOptions = {
+                            sendingPoolName = "ops-marketing-pool"
+                            tlsPolicy = "OPTIONAL"
+                            maxDeliverySeconds = 300
+                        }
+                        reputationOptions.reputationMetricsEnabled = False
+                        sendingOptions.sendingEnabled = True
+                        suppressionOptions.suppressedReasons = ["BOUNCE"]
+                    }
+                }
+            ]
+        }
+    },
+
+    # Dedicated pool status is typed, and Usage protects delete ordering.
+    metav1alpha1.CompositionTest {
+        metadata.name = "dedicated-ip-pool-status-and-usage"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = {
+                apiVersion = "aws.hops.ops.com.ai/v1alpha1"
+                kind = "SMTPSender"
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                    pushCredentials.enabled = False
+                    dedicatedIpPool.enabled = True
+                }
+            }
+            observedResources = [
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "EmailIdentity"
+                    metadata.name = "ops"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "email-identity"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider.arn = "arn:aws:ses:us-east-2:034489662075:identity/ops.com.ai"
+                },
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "DedicatedIPPool"
+                    metadata.name = "ops-smtp"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "dedicated-ip-pool"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider = {
+                        arn = "arn:aws:ses:us-east-2:034489662075:dedicated-ip-pool/ops-smtp"
+                        id = "ops-smtp"
+                        scalingMode = "MANAGED"
+                    }
+                },
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "ConfigurationSet"
+                    metadata.name = "ops-smtp"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "configuration-set"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider = {
+                        arn = "arn:aws:ses:us-east-2:034489662075:configuration-set/ops-smtp"
+                        id = "ops-smtp"
+                    }
+                },
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "User"
+                    metadata.name = "ops-smtp"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-user"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider.arn = "arn:aws:iam::034489662075:user/ops-smtp"
+                },
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "Policy"
+                    metadata.name = "ops-smtp-send-email"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-policy"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider.arn = "arn:aws:iam::034489662075:policy/ops-smtp-send-email"
+                },
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "UserPolicyAttachment"
+                    metadata.name = "ops-smtp-policy"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-policy-attachment"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider.id = "ops-smtp/arn:aws:iam::034489662075:policy/ops-smtp-send-email"
+                },
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "AccessKey"
+                    metadata.name = "ops-smtp-access-key"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-access-key"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider.id = "AKIAIOSFODNN7EXAMPLE"
+                }
+            ]
+            assertResources = [
+                {
+                    apiVersion = "protection.crossplane.io/v1beta1"
+                    kind = "Usage"
+                    metadata.name = "ops-delete-configuration-set-before-dedicated-ip-pool"
+                    spec = {
+                        replayDeletion = True
+                        of = {
+                            apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                            kind = "DedicatedIPPool"
+                            resourceRef.name = "ops-smtp"
+                        }
+                        by = {
+                            apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                            kind = "ConfigurationSet"
+                            resourceRef.name = "ops-smtp"
+                        }
+                    }
+                },
+                {
+                    apiVersion = "aws.hops.ops.com.ai/v1alpha1"
+                    kind = "SMTPSender"
+                    metadata.name = "ops"
+                    metadata.namespace = "default"
+                    status = {
+                        ready = True
+                        ses = {
+                            identityArn = "arn:aws:ses:us-east-2:034489662075:identity/ops.com.ai"
+                            dedicatedIpPool = {
+                                arn = "arn:aws:ses:us-east-2:034489662075:dedicated-ip-pool/ops-smtp"
+                                name = "ops-smtp"
+                                scalingMode = "MANAGED"
+                            }
+                            configurationSet = {
+                                arn = "arn:aws:ses:us-east-2:034489662075:configuration-set/ops-smtp"
+                                name = "ops-smtp"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    },
+
     # Observed provider state is normalized into the typed status contract.
     metav1alpha1.CompositionTest {
         metadata.name = "status-from-observed-resources"

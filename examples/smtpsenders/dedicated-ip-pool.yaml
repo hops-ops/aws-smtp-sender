@@ -1,0 +1,30 @@
+apiVersion: aws.hops.ops.com.ai/v1alpha1
+kind: SMTPSender
+metadata:
+  name: ops-marketing
+  namespace: default
+spec:
+  domain: marketing.ops.com.ai
+  clusterName: pat-local
+  region: us-east-2
+  accountId: "034489662075"
+  managementPolicies:
+    - "*"
+  dedicatedIpPool:
+    enabled: true
+    name: ops-marketing-smtp
+    scalingMode: MANAGED
+    tags:
+      Purpose: outbound-marketing-mail
+  configurationSet:
+    name: ops-marketing-smtp
+    deliveryOptions:
+      tlsPolicy: REQUIRE
+      maxDeliverySeconds: 50400
+    reputationMetricsEnabled: true
+    sendingEnabled: true
+    suppressionReasons:
+      - BOUNCE
+      - COMPLAINT
+    tags:
+      Purpose: outbound-marketing-mail

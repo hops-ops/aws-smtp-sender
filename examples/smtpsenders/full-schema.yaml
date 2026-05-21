@@ -29,6 +29,26 @@ spec:
     path: push/pat-local/ops-smtp
     tags:
       Purpose: outbound-mail
+  dedicatedIpPool:
+    enabled: false
+    name: ops-smtp
+    externalName: ops-smtp
+    scalingMode: MANAGED
+    tags:
+      Purpose: outbound-mail
+  configurationSet:
+    name: ops-smtp
+    externalName: ops-smtp
+    deliveryOptions:
+      tlsPolicy: REQUIRE
+      maxDeliverySeconds: 50400
+    reputationMetricsEnabled: true
+    sendingEnabled: true
+    suppressionReasons:
+      - BOUNCE
+      - COMPLAINT
+    tags:
+      Purpose: outbound-mail
   aws:
     tags:
       CostCenter: platform

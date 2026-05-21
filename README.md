@@ -15,6 +15,7 @@ With SMTPSender:
 - SES identity, IAM SMTP user, access key, and Secrets Manager publication are one declarative XR.
 - Non-secret SMTP connection data is exposed in typed status.
 - The secret value stored in AWS Secrets Manager is the SES SMTP password from the AccessKey connection secret key `attribute.ses_smtp_password_v4`.
+- Optional dedicated IP pools and SES configuration sets isolate sender reputation when the extra AWS cost is justified.
 
 ## The Journey
 
@@ -61,7 +62,26 @@ Multiple `SMTPSender` resources can run in the same AWS account when they
 use unique SES identities, IAM user names, and Secrets Manager paths. They
 share the account and Region SES sending quota.
 
-### Stage 3: Enterprise Scale
+### Stage 3: Dedicated IP Reputation (Opt-in)
+
+Dedicated IP pools are disabled by default because they are cost-bearing AWS resources. Enable them only for senders that need isolated reputation, such as marketing or high-volume transactional mail:
+
+```yaml
+spec:
+  dedicatedIpPool:
+    enabled: true
+    scalingMode: MANAGED
+  configurationSet:
+    deliveryOptions:
+      tlsPolicy: REQUIRE
+      maxDeliverySeconds: 50400
+    reputationMetricsEnabled: true
+    sendingEnabled: true
+```
+
+This creates an SESv2 `DedicatedIPPool` and a `ConfigurationSet` whose `deliveryOptions.sendingPoolName` points at the pool. SMTP consumers must send with the configuration set, for example via the `X-SES-CONFIGURATION-SET` header, for mail to use the dedicated pool.
+
+### Stage 4: Enterprise Scale
 
 Set `accountId` to scope the SES send policy ARN to a specific account and apply an IAM permissions boundary:
 
@@ -74,7 +94,7 @@ spec:
 
 If `accountId` is omitted, the policy uses a wildcard account segment while still scoping by region and identity domain.
 
-### Stage 4: Import Existing
+### Stage 5: Import Existing
 
 Use external-name fields and orphaning management policies to observe existing IAM resources without deleting them:
 
@@ -112,11 +132,15 @@ The DKIM publisher reads `status.dkim.tokens` and creates three CNAME records:
 - `status.dkim.*`: SES verification status and DKIM tokens for DNS publication.
 - `status.iam.*`: IAM user and policy ARNs.
 - `status.ses.identityArn`: SES identity ARN.
+- `status.ses.dedicatedIpPool.*`: dedicated IP pool ARN, name, and scaling mode when enabled.
+- `status.ses.configurationSet.*`: SES configuration set ARN and name when enabled.
 - `status.secret.arn`: Secrets Manager secret ARN when credential push is enabled.
 
 ## Composed Resources
 
 - `sesv2.aws.m.upbound.io/EmailIdentity`: sender domain identity and DKIM tokens.
+- `sesv2.aws.m.upbound.io/DedicatedIPPool`: optional cost-bearing dedicated IP pool when `spec.dedicatedIpPool.enabled=true`.
+- `sesv2.aws.m.upbound.io/ConfigurationSet`: optional configuration set that selects the dedicated IP pool.
 - `iam.aws.m.upbound.io/User`: SMTP IAM user.
 - `iam.aws.m.upbound.io/Policy`: `ses:SendRawEmail` permission scoped to the identity ARN.
 - `iam.aws.m.upbound.io/UserPolicyAttachment`: attaches the send policy to the SMTP user.

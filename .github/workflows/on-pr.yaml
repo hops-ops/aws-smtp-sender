@@ -33,6 +33,7 @@ jobs:
           { "example": "examples/smtpsenders/minimal.yaml" },
           { "example": "examples/smtpsenders/minimal.yaml", "observed_resources": "examples/test/mocks/observed-resources/ready/steps/1/" },
           { "example": "examples/smtpsenders/push-disabled.yaml" },
+          { "example": "examples/smtpsenders/dedicated-ip-pool.yaml" },
           { "example": "examples/smtpsenders/full-schema.yaml" }
         ]
       api_path: apis/smtpsenders
@@ -52,6 +53,8 @@ jobs:
         [
           "smtpsenders.aws.hops.ops.com.ai",
           "emailidentities.sesv2.aws.m.upbound.io",
+          "dedicatedippools.sesv2.aws.m.upbound.io",
+          "configurationsets.sesv2.aws.m.upbound.io",
           "users.iam.aws.m.upbound.io",
           "policies.iam.aws.m.upbound.io",
           "userpolicyattachments.iam.aws.m.upbound.io",
