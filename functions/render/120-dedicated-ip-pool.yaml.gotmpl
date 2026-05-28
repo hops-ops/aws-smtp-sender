@@ -25,7 +25,8 @@ spec:
     name: {{ $state.smtpSender.providerConfig.name }}
     kind: {{ $state.smtpSender.providerConfig.kind }}
 
-{{- if $state.observed.dedicatedIpPool.ready }}
+{{- /* Existence-gated on dedicatedIpPool.id (not .ready): a Ready blip must not un-render and delete the ConfigurationSet. */}}
+{{- if ne $state.observed.dedicatedIpPool.id "" }}
 ---
 apiVersion: sesv2.aws.m.upbound.io/v1beta1
 kind: ConfigurationSet

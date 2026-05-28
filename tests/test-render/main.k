@@ -781,6 +781,76 @@ _items = [
                 }
             ]
         }
+    },
+
+    # Existence-gating: dependents render on upstream id/arn being populated, NOT
+    # on Ready. A transient upstream Ready=False (not a deletion) must not drop
+    # the AccessKey from desired state — that would delete it and rotate the SES
+    # SMTP password. Here User+Policy exist (atProvider set) but report
+    # Ready=False; AccessKey and UserPolicyAttachment must still render.
+    metav1alpha1.CompositionTest {
+        metadata.name = "unready-but-existing-upstreams-still-render-dependents"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = awsv1alpha1.SMTPSender {
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                }
+            }
+            observedResources = [
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "User"
+                    metadata.name = "ops-smtp"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-user"
+                    }
+                    status.conditions = [
+                        {type = "Synced", status = "False"}
+                        {type = "Ready", status = "False"}
+                    ]
+                    status.atProvider = {
+                        id = "ops-smtp"
+                        arn = "arn:aws:iam::034489662075:user/ops-smtp"
+                    }
+                }
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "Policy"
+                    metadata.name = "ops-smtp-send-email"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-policy"
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "False"}
+                    ]
+                    status.atProvider = {
+                        arn = "arn:aws:iam::034489662075:policy/ops-smtp-send-email"
+                        id = "arn:aws:iam::034489662075:policy/ops-smtp-send-email"
+                    }
+                }
+            ]
+            assertResources = [
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "AccessKey"
+                    metadata.name = "ops-smtp-access-key"
+                }
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "UserPolicyAttachment"
+                    metadata.name = "ops-smtp-policy"
+                }
+            ]
+        }
     }
 ]
 items = _items

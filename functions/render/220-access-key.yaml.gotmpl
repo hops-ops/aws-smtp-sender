@@ -3,7 +3,8 @@
 # IAM AccessKey. Upjet writes attribute.ses_smtp_password_v4 into the connection Secret.
 #
 {{- $iam := $state.smtpSender.iam }}
-{{- if $state.observed.user.ready }}
+{{- /* Existence-gated on user.id (not .ready): a transient User Ready=False must not un-render and delete the AccessKey, which would rotate the SES SMTP password. */}}
+{{- if ne $state.observed.user.id "" }}
 ---
 apiVersion: iam.aws.m.upbound.io/v1beta1
 kind: AccessKey
