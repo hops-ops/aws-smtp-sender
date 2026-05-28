@@ -182,3 +182,26 @@
   "ready" $secretVersionReady
   "id" ($secretVersionAtProvider.id | default "")
 ))) }}
+
+# ==============================================================================
+# Cloudflare DKIM records (composed only when spec.cloudflare.dkim.enabled).
+# Always read all three slots; absent records resolve to ready=false.
+# ==============================================================================
+{{- $dkimRecords := dict }}
+{{- range $index, $_ := until 3 }}
+  {{- $recordIndex := add $index 1 }}
+  {{- $resourceName := printf "dkim-%d" $recordIndex }}
+  {{- $recordEntry := get $raw $resourceName | default dict }}
+  {{- $recordResource := $recordEntry.resource | default dict }}
+  {{- $recordReady := false }}
+  {{- range (dig "status" "conditions" (list) $recordResource) }}
+    {{- if and (eq .type "Ready") (eq .status "True") }}
+      {{- $recordReady = true }}
+    {{- end }}
+  {{- end }}
+  {{- $dkimRecords = set $dkimRecords $resourceName (dict
+    "ready" $recordReady
+    "id" (dig "status" "atProvider" "id" "" $recordResource)
+  ) }}
+{{- end }}
+{{- $state = set $state "observed" (merge $state.observed (dict "dkimRecords" $dkimRecords)) }}

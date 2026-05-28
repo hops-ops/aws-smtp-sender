@@ -1,0 +1,37 @@
+# code: language=yaml
+#
+# Optional Cloudflare DNS publication of the SES DKIM CNAME records. Gated on
+# spec.cloudflare.dkim.enabled, the three DKIM tokens being observed from the
+# SES identity, and a zoneId. The Cloudflare Record CRD is an apiDependency; the
+# Cloudflare DNS provider is an operator-managed runtime dependency installed
+# only where DKIM publication is enabled (intentionally not a package dependsOn).
+#
+{{- $cf := $state.smtpSender.cloudflare }}
+{{- if $cf.dkim.enabled }}
+{{- $tokens := ($state.observed.identity.dkimTokens | default list) }}
+{{- if and (eq (len $tokens) 3) (ne $cf.dkim.zoneId "") }}
+{{- range $index, $token := $tokens }}
+{{- $recordIndex := add $index 1 }}
+---
+apiVersion: dns.upjet-cloudflare.m.upbound.io/v1alpha1
+kind: Record
+metadata:
+  name: {{ printf "%s-dkim-%d" $state.smtpSender.name $recordIndex | quote }}
+  annotations:
+    {{ setResourceNameAnnotation (printf "dkim-%d" $recordIndex) }}
+  labels: {{ merge (dict) $state.smtpSender.labels (dict "hops.ops.com.ai/dkim-record-index" (toString $recordIndex)) | toJson }}
+spec:
+  managementPolicies: {{ $state.smtpSender.managementPolicies | toJson }}
+  forProvider:
+    type: CNAME
+    name: {{ printf "%s._domainkey.%s" $token $state.smtpSender.domain | quote }}
+    content: {{ printf "%s.dkim.amazonses.com" $token | quote }}
+    proxied: {{ $cf.dkim.proxied }}
+    ttl: {{ $cf.dkim.ttl }}
+    zoneId: {{ $cf.dkim.zoneId | quote }}
+  providerConfigRef:
+    name: {{ $cf.providerConfigRef.name }}
+    kind: {{ $cf.providerConfigRef.kind }}
+{{- end }}
+{{- end }}
+{{- end }}

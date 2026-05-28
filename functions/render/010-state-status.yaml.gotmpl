@@ -20,6 +20,32 @@
   {{- $ready = and $ready ($obs.dedicatedIpPool.ready | default false) ($obs.configurationSet.ready | default false) }}
 {{- end }}
 
+# Cloudflare DKIM records: ready only when enabled, all 3 tokens observed, and
+# all 3 records reconciled. Folded into overall readiness only when enabled.
+{{- $cfDkimEnabled := $eff.cloudflare.dkim.enabled }}
+{{- $dkimRecordsReady := false }}
+{{- $dkimRecordsStatus := list }}
+{{- if $cfDkimEnabled }}
+  {{- $dkimRecordsReady = true }}
+  {{- $tokens := ($obs.identity.dkimTokens | default list) }}
+  {{- if ne (len $tokens) 3 }}
+    {{- $dkimRecordsReady = false }}
+  {{- end }}
+  {{- range $index, $token := $tokens }}
+    {{- $i := add $index 1 }}
+    {{- $rec := get ($obs.dkimRecords | default dict) (printf "dkim-%d" $i) | default dict }}
+    {{- if not ($rec.ready | default false) }}
+      {{- $dkimRecordsReady = false }}
+    {{- end }}
+    {{- $dkimRecordsStatus = append $dkimRecordsStatus (dict
+      "name" (printf "%s._domainkey.%s" $token $eff.domain)
+      "value" (printf "%s.dkim.amazonses.com" $token)
+      "cloudflareRecordId" ($rec.id | default "")
+    ) }}
+  {{- end }}
+  {{- $ready = and $ready $dkimRecordsReady }}
+{{- end }}
+
 {{- $state = set $state "status" (dict
   "ready" $ready
   "smtp" (dict
@@ -33,6 +59,8 @@
     "verificationStatus" ($obs.identity.verificationStatus | default "")
     "status" ($obs.identity.dkimStatus | default "")
     "tokens" ($obs.identity.dkimTokens | default list)
+    "recordsReady" $dkimRecordsReady
+    "records" $dkimRecordsStatus
   )
   "iam" (dict
     "userArn" ($obs.user.arn | default "")

@@ -681,6 +681,106 @@ _items = [
                 }
             ]
         }
+    },
+
+    # Enabling cloudflare.dkim composes three Cloudflare CNAME records once the
+    # SES identity's DKIM tokens are observed. Each token maps to its _domainkey
+    # CNAME pointing at amazonses.com, unproxied, in the supplied zone.
+    metav1alpha1.CompositionTest {
+        metadata.name = "cloudflare-dkim-enabled-renders-records"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = {
+                apiVersion = "aws.hops.ops.com.ai/v1alpha1"
+                kind = "SMTPSender"
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                    cloudflare = {
+                        providerConfigRef = {
+                            name = "cloudflare"
+                            kind = "ProviderConfig"
+                        }
+                        dkim = {
+                            enabled = True
+                            zoneId = "90e2d946537b82c0723741dfc9203b39"
+                        }
+                    }
+                }
+            }
+            observedResources = [
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "EmailIdentity"
+                    metadata.name = "ops"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "email-identity"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider = {
+                        verificationStatus = "SUCCESS"
+                        verifiedForSendingStatus = True
+                        dkimSigningAttributes = {
+                            status = "SUCCESS"
+                            tokens = [
+                                "abcdefghijklmnopqrstu",
+                                "vwxyzabcdefghijklmnop",
+                                "qrstuvwxyzabcdefghijk"
+                            ]
+                        }
+                    }
+                }
+            ]
+            assertResources = [
+                {
+                    apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
+                    kind = "Record"
+                    metadata.name = "ops-dkim-1"
+                    spec.forProvider = {
+                        type = "CNAME"
+                        name = "abcdefghijklmnopqrstu._domainkey.ops.com.ai"
+                        content = "abcdefghijklmnopqrstu.dkim.amazonses.com"
+                        proxied = False
+                        ttl = 1
+                        zoneId = "90e2d946537b82c0723741dfc9203b39"
+                    }
+                    spec.providerConfigRef.name = "cloudflare"
+                },
+                {
+                    apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
+                    kind = "Record"
+                    metadata.name = "ops-dkim-2"
+                    spec.forProvider = {
+                        type = "CNAME"
+                        name = "vwxyzabcdefghijklmnop._domainkey.ops.com.ai"
+                        content = "vwxyzabcdefghijklmnop.dkim.amazonses.com"
+                        proxied = False
+                        ttl = 1
+                        zoneId = "90e2d946537b82c0723741dfc9203b39"
+                    }
+                },
+                {
+                    apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
+                    kind = "Record"
+                    metadata.name = "ops-dkim-3"
+                    spec.forProvider = {
+                        type = "CNAME"
+                        name = "qrstuvwxyzabcdefghijk._domainkey.ops.com.ai"
+                        content = "qrstuvwxyzabcdefghijk.dkim.amazonses.com"
+                        proxied = False
+                        ttl = 1
+                        zoneId = "90e2d946537b82c0723741dfc9203b39"
+                    }
+                }
+            ]
+        }
     }
 ]
 items = _items
