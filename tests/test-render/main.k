@@ -679,6 +679,15 @@ _items = [
                         secret.arn = "arn:aws:secretsmanager:us-east-2:034489662075:secret:push/pat-local/ops-smtp-AbCdEf"
                     }
                 }
+                {
+                    # Deletion-ordering Usage: AccessKey (conn-secret source) must
+                    # outlive the SecretVersion so its refs resolve at delete time.
+                    apiVersion = "protection.crossplane.io/v1beta1"
+                    kind = "Usage"
+                    metadata.name = "ops-delete-secret-version-before-access-key"
+                    spec.of.resourceRef.name = "ops-smtp-access-key"
+                    spec.by.resourceRef.name = "ops-smtp-version"
+                }
             ]
         }
     },
