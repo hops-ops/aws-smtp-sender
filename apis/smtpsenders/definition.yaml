@@ -226,11 +226,12 @@ spec:
                   description: >-
                     Optional Cloudflare DNS publication of the SES DKIM CNAME records.
                     When dkim.enabled is true, SMTPSender composes three Cloudflare Record
-                    MRs directly from the SES DKIM tokens. The Cloudflare Record CRD
-                    (dns.upjet-cloudflare.m.upbound.io) is declared as an apiDependency;
-                    the Cloudflare DNS provider is an operator-managed runtime dependency
-                    that must be installed on the control plane wherever dkim.enabled is
-                    true (it is intentionally not in the package dependsOn).
+                    MRs directly from the SES DKIM tokens. The Cloudflare DNS provider
+                    (provider-cloudflare-dns) is declared in the package dependsOn, so this
+                    package depends on both AWS and Cloudflare providers; on production
+                    control planes (skipDependencyResolution) the operator manages the
+                    installed provider set, and the Record MRs are composed only when
+                    dkim.enabled is true.
                   properties:
                     providerConfigRef:
                       type: object

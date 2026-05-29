@@ -2,9 +2,9 @@
 #
 # Optional Cloudflare DNS publication of the SES DKIM CNAME records. Gated on
 # spec.cloudflare.dkim.enabled, the three DKIM tokens being observed from the
-# SES identity, and a zoneId. The Cloudflare Record CRD is an apiDependency; the
-# Cloudflare DNS provider is an operator-managed runtime dependency installed
-# only where DKIM publication is enabled (intentionally not a package dependsOn).
+# SES identity, and a zoneId. The Cloudflare DNS provider is declared in the
+# package dependsOn (this package depends on both AWS and Cloudflare providers);
+# the Record MRs are composed only when DKIM publication is enabled.
 #
 {{- $cf := $state.smtpSender.cloudflare }}
 {{- if $cf.dkim.enabled }}
