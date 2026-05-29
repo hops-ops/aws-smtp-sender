@@ -57,7 +57,8 @@ spec:
     name: {{ $state.smtpSender.providerConfig.name }}
     kind: {{ $state.smtpSender.providerConfig.kind }}
 
-{{- if and $state.observed.user.ready $state.observed.policy.ready }}
+{{- /* Existence-gated (user.id + policy.arn), not .ready: a transient unready must not un-render and delete the attachment. */}}
+{{- if and (ne $state.observed.user.id "") (ne $state.observed.policy.arn "") }}
 ---
 apiVersion: iam.aws.m.upbound.io/v1beta1
 kind: UserPolicyAttachment

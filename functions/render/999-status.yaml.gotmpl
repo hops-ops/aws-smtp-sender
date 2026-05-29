@@ -21,6 +21,8 @@ status:
     verificationStatus: {{ $s.dkim.verificationStatus | quote }}
     status: {{ $s.dkim.status | quote }}
     tokens: {{ $s.dkim.tokens | toJson }}
+    recordsReady: {{ $s.dkim.recordsReady }}
+    records: {{ $s.dkim.records | toJson }}
   iam:
     userArn: {{ $s.iam.userArn | quote }}
     policyArn: {{ $s.iam.policyArn | quote }}

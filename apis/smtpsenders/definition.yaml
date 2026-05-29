@@ -221,6 +221,47 @@ spec:
                       additionalProperties:
                         type: string
                       x-kubernetes-preserve-unknown-fields: true
+                cloudflare:
+                  type: object
+                  description: >-
+                    Optional Cloudflare DNS publication of the SES DKIM CNAME records.
+                    When dkim.enabled is true, SMTPSender composes three Cloudflare Record
+                    MRs directly from the SES DKIM tokens. The Cloudflare DNS provider
+                    (provider-cloudflare-dns) is declared in the package dependsOn, so this
+                    package depends on both AWS and Cloudflare providers; on production
+                    control planes (skipDependencyResolution) the operator manages the
+                    installed provider set, and the Record MRs are composed only when
+                    dkim.enabled is true.
+                  properties:
+                    providerConfigRef:
+                      type: object
+                      description: Reference to the Cloudflare ProviderConfig used for the DKIM records. Defaults to "default".
+                      properties:
+                        name:
+                          type: string
+                          description: Name of the Cloudflare ProviderConfig.
+                        kind:
+                          type: string
+                          description: Kind of the Cloudflare ProviderConfig.
+                          default: ProviderConfig
+                    dkim:
+                      type: object
+                      description: SES DKIM CNAME publication into Cloudflare DNS.
+                      properties:
+                        enabled:
+                          type: boolean
+                          description: Whether to publish the three SES DKIM CNAME records into Cloudflare. Disabled by default; requires the Cloudflare DNS provider on the control plane.
+                          default: false
+                        zoneId:
+                          type: string
+                          description: Cloudflare zone ID hosting the sender domain. Required when enabled.
+                        ttl:
+                          type: integer
+                          description: TTL for the Cloudflare records. 1 means automatic.
+                          default: 1
+                  x-kubernetes-validations:
+                    - rule: "!has(self.dkim) || !(has(self.dkim.enabled) && self.dkim.enabled) || (has(self.dkim.zoneId) && size(self.dkim.zoneId) > 0)"
+                      message: "spec.cloudflare.dkim.zoneId is required when spec.cloudflare.dkim.enabled is true"
               required:
                 - domain
                 - clusterName
@@ -264,6 +305,24 @@ spec:
                       description: DKIM tokens for DNS CNAME publication.
                       items:
                         type: string
+                    recordsReady:
+                      type: boolean
+                      description: Whether all Cloudflare DKIM CNAME records are ready. False unless spec.cloudflare.dkim.enabled is true and all three records reconcile.
+                    records:
+                      type: array
+                      description: Cloudflare DKIM CNAME records composed when spec.cloudflare.dkim.enabled is true.
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                            description: Record name, <token>._domainkey.<domain>.
+                          value:
+                            type: string
+                            description: Record content, <token>.dkim.amazonses.com.
+                          cloudflareRecordId:
+                            type: string
+                            description: Observed Cloudflare record ID.
                 iam:
                   type: object
                   properties:

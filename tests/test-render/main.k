@@ -679,6 +679,187 @@ _items = [
                         secret.arn = "arn:aws:secretsmanager:us-east-2:034489662075:secret:push/pat-local/ops-smtp-AbCdEf"
                     }
                 }
+                {
+                    # Deletion-ordering Usage: AccessKey (conn-secret source) must
+                    # outlive the SecretVersion so its refs resolve at delete time.
+                    apiVersion = "protection.crossplane.io/v1beta1"
+                    kind = "Usage"
+                    metadata.name = "ops-delete-secret-version-before-access-key"
+                    spec.of.resourceRef.name = "ops-smtp-access-key"
+                    spec.by.resourceRef.name = "ops-smtp-version"
+                }
+            ]
+        }
+    },
+
+    # Enabling cloudflare.dkim composes three Cloudflare CNAME records once the
+    # SES identity's DKIM tokens are observed. Each token maps to its _domainkey
+    # CNAME pointing at amazonses.com, unproxied, in the supplied zone.
+    metav1alpha1.CompositionTest {
+        metadata.name = "cloudflare-dkim-enabled-renders-records"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = {
+                apiVersion = "aws.hops.ops.com.ai/v1alpha1"
+                kind = "SMTPSender"
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                    cloudflare = {
+                        providerConfigRef = {
+                            name = "cloudflare"
+                            kind = "ProviderConfig"
+                        }
+                        dkim = {
+                            enabled = True
+                            zoneId = "90e2d946537b82c0723741dfc9203b39"
+                        }
+                    }
+                }
+            }
+            observedResources = [
+                {
+                    apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
+                    kind = "EmailIdentity"
+                    metadata.name = "ops"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "email-identity"
+                    }
+                    status.conditions = _ready_conditions
+                    status.atProvider = {
+                        verificationStatus = "SUCCESS"
+                        verifiedForSendingStatus = True
+                        dkimSigningAttributes = {
+                            status = "SUCCESS"
+                            tokens = [
+                                "abcdefghijklmnopqrstu",
+                                "vwxyzabcdefghijklmnop",
+                                "qrstuvwxyzabcdefghijk"
+                            ]
+                        }
+                    }
+                }
+            ]
+            assertResources = [
+                {
+                    apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
+                    kind = "Record"
+                    metadata.name = "ops-dkim-1"
+                    spec.forProvider = {
+                        type = "CNAME"
+                        name = "abcdefghijklmnopqrstu._domainkey.ops.com.ai"
+                        content = "abcdefghijklmnopqrstu.dkim.amazonses.com"
+                        proxied = False
+                        ttl = 1
+                        zoneId = "90e2d946537b82c0723741dfc9203b39"
+                    }
+                    spec.providerConfigRef.name = "cloudflare"
+                },
+                {
+                    apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
+                    kind = "Record"
+                    metadata.name = "ops-dkim-2"
+                    spec.forProvider = {
+                        type = "CNAME"
+                        name = "vwxyzabcdefghijklmnop._domainkey.ops.com.ai"
+                        content = "vwxyzabcdefghijklmnop.dkim.amazonses.com"
+                        proxied = False
+                        ttl = 1
+                        zoneId = "90e2d946537b82c0723741dfc9203b39"
+                    }
+                    spec.providerConfigRef.name = "cloudflare"
+                },
+                {
+                    apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
+                    kind = "Record"
+                    metadata.name = "ops-dkim-3"
+                    spec.forProvider = {
+                        type = "CNAME"
+                        name = "qrstuvwxyzabcdefghijk._domainkey.ops.com.ai"
+                        content = "qrstuvwxyzabcdefghijk.dkim.amazonses.com"
+                        proxied = False
+                        ttl = 1
+                        zoneId = "90e2d946537b82c0723741dfc9203b39"
+                    }
+                    spec.providerConfigRef.name = "cloudflare"
+                }
+            ]
+        }
+    },
+
+    # Existence-gating: dependents render on upstream id/arn being populated, NOT
+    # on Ready. A transient upstream Ready=False (not a deletion) must not drop
+    # the AccessKey from desired state — that would delete it and rotate the SES
+    # SMTP password. Here User+Policy exist (atProvider set) but report
+    # Ready=False; AccessKey and UserPolicyAttachment must still render.
+    metav1alpha1.CompositionTest {
+        metadata.name = "unready-but-existing-upstreams-still-render-dependents"
+        spec = {
+            compositionPath = "apis/smtpsenders/composition.yaml"
+            xrdPath = "apis/smtpsenders/definition.yaml"
+            timeoutSeconds = 60
+            validate = False
+            xr = awsv1alpha1.SMTPSender {
+                metadata.name = "ops"
+                metadata.namespace = "default"
+                spec = {
+                    domain = "ops.com.ai"
+                    clusterName = "pat-local"
+                    region = "us-east-2"
+                    managementPolicies = ["*"]
+                }
+            }
+            observedResources = [
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "User"
+                    metadata.name = "ops-smtp"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-user"
+                    }
+                    status.conditions = [
+                        {type = "Synced", status = "False"}
+                        {type = "Ready", status = "False"}
+                    ]
+                    status.atProvider = {
+                        id = "ops-smtp"
+                        arn = "arn:aws:iam::034489662075:user/ops-smtp"
+                    }
+                }
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "Policy"
+                    metadata.name = "ops-smtp-send-email"
+                    metadata.annotations = {
+                        "crossplane.io/composition-resource-name" = "iam-policy"
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "False"}
+                    ]
+                    status.atProvider = {
+                        arn = "arn:aws:iam::034489662075:policy/ops-smtp-send-email"
+                        id = "arn:aws:iam::034489662075:policy/ops-smtp-send-email"
+                    }
+                }
+            ]
+            assertResources = [
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "AccessKey"
+                    metadata.name = "ops-smtp-access-key"
+                }
+                {
+                    apiVersion = "iam.aws.m.upbound.io/v1beta1"
+                    kind = "UserPolicyAttachment"
+                    metadata.name = "ops-smtp-policy"
+                }
             ]
         }
     }

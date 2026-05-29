@@ -93,6 +93,21 @@
 {{- end }}
 {{- $suppressionReasons := $configurationSetSpec.suppressionReasons | default (list "BOUNCE" "COMPLAINT") }}
 
+# Cloudflare DKIM DNS publication. Disabled by default. The Cloudflare Record
+# CRD is an apiDependency; the provider is an operator-managed runtime dep
+# installed only where dkim.enabled is true.
+{{- $cloudflareSpec := $spec.cloudflare | default dict }}
+{{- $cfDkimSpec := $cloudflareSpec.dkim | default dict }}
+{{- $cloudflareDkimEnabled := false }}
+{{- if hasKey $cfDkimSpec "enabled" }}
+  {{- $cloudflareDkimEnabled = $cfDkimSpec.enabled }}
+{{- end }}
+{{- $cfProviderSpec := $cloudflareSpec.providerConfigRef | default dict }}
+{{- $cloudflareProviderConfigRef := dict
+  "name" ($cfProviderSpec.name | default "default")
+  "kind" ($cfProviderSpec.kind | default "ProviderConfig")
+}}
+
 # ==============================================================================
 # Initialize $state namespace
 # ==============================================================================
@@ -166,6 +181,14 @@
         "sendingEnabled" $sendingEnabled
         "suppressionReasons" $suppressionReasons
         "tags" $configurationSetTags
+      )
+      "cloudflare" (dict
+        "dkim" (dict
+          "enabled" $cloudflareDkimEnabled
+          "zoneId" ($cfDkimSpec.zoneId | default "")
+          "ttl" ($cfDkimSpec.ttl | default 1)
+        )
+        "providerConfigRef" $cloudflareProviderConfigRef
       )
     )
   )
