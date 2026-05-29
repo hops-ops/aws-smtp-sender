@@ -765,6 +765,7 @@ _items = [
                         ttl = 1
                         zoneId = "90e2d946537b82c0723741dfc9203b39"
                     }
+                    spec.providerConfigRef.name = "cloudflare"
                 },
                 {
                     apiVersion = "dns.upjet-cloudflare.m.upbound.io/v1alpha1"
@@ -778,6 +779,7 @@ _items = [
                         ttl = 1
                         zoneId = "90e2d946537b82c0723741dfc9203b39"
                     }
+                    spec.providerConfigRef.name = "cloudflare"
                 }
             ]
         }
