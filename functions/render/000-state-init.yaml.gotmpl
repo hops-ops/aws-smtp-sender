@@ -186,7 +186,6 @@
         "dkim" (dict
           "enabled" $cloudflareDkimEnabled
           "zoneId" ($cfDkimSpec.zoneId | default "")
-          "proxied" ($cfDkimSpec.proxied | default false)
           "ttl" ($cfDkimSpec.ttl | default 1)
         )
         "providerConfigRef" $cloudflareProviderConfigRef

@@ -255,10 +255,6 @@ spec:
                         zoneId:
                           type: string
                           description: Cloudflare zone ID hosting the sender domain. Required when enabled.
-                        proxied:
-                          type: boolean
-                          description: Whether the Cloudflare records are proxied. DKIM CNAMEs must not be proxied.
-                          default: false
                         ttl:
                           type: integer
                           description: TTL for the Cloudflare records. 1 means automatic.

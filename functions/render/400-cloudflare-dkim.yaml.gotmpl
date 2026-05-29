@@ -5,6 +5,7 @@
 # SES identity, and a zoneId. The Cloudflare DNS provider is declared in the
 # package dependsOn (this package depends on both AWS and Cloudflare providers);
 # the Record MRs are composed only when DKIM publication is enabled.
+# proxied is always false: DKIM CNAMEs must resolve to amazonses.com, never be Cloudflare-proxied.
 #
 {{- $cf := $state.smtpSender.cloudflare }}
 {{- if $cf.dkim.enabled }}
@@ -26,7 +27,7 @@ spec:
     type: CNAME
     name: {{ printf "%s._domainkey.%s" $token $state.smtpSender.domain | quote }}
     content: {{ printf "%s.dkim.amazonses.com" $token | quote }}
-    proxied: {{ $cf.dkim.proxied }}
+    proxied: false
     ttl: {{ $cf.dkim.ttl }}
     zoneId: {{ $cf.dkim.zoneId | quote }}
   providerConfigRef:

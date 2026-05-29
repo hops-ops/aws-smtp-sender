@@ -59,5 +59,4 @@ spec:
     dkim:
       enabled: true
       zoneId: 90e2d946537b82c0723741dfc9203b39
-      proxied: false
       ttl: 1
