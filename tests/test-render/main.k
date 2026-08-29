@@ -206,6 +206,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "User"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-user"
                     }
@@ -216,6 +217,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "Policy"
                     metadata.name = "ops-smtp-send-email"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-policy"
                     }
@@ -226,6 +228,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "AccessKey"
                     metadata.name = "ops-smtp-access-key"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-access-key"
                     }
@@ -236,6 +239,7 @@ _items = [
                     apiVersion = "secretsmanager.aws.m.upbound.io/v1beta1"
                     kind = "Secret"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "secrets-manager-secret"
                     }
@@ -365,6 +369,7 @@ _items = [
                     apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
                     kind = "DedicatedIPPool"
                     metadata.name = "ops-marketing-pool"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "dedicated-ip-pool"
                     }
@@ -427,6 +432,7 @@ _items = [
                     apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
                     kind = "EmailIdentity"
                     metadata.name = "ops"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "email-identity"
                     }
@@ -437,6 +443,7 @@ _items = [
                     apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
                     kind = "DedicatedIPPool"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "dedicated-ip-pool"
                     }
@@ -451,6 +458,7 @@ _items = [
                     apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
                     kind = "ConfigurationSet"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "configuration-set"
                     }
@@ -464,6 +472,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "User"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-user"
                     }
@@ -474,6 +483,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "Policy"
                     metadata.name = "ops-smtp-send-email"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-policy"
                     }
@@ -484,6 +494,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "UserPolicyAttachment"
                     metadata.name = "ops-smtp-policy"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-policy-attachment"
                     }
@@ -494,6 +505,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "AccessKey"
                     metadata.name = "ops-smtp-access-key"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-access-key"
                     }
@@ -557,6 +569,7 @@ _items = [
                     apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
                     kind = "EmailIdentity"
                     metadata.name = "ops"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "email-identity"
                     }
@@ -579,6 +592,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "User"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-user"
                     }
@@ -592,6 +606,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "Policy"
                     metadata.name = "ops-smtp-send-email"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-policy"
                     }
@@ -605,6 +620,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "UserPolicyAttachment"
                     metadata.name = "ops-smtp-policy"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-policy-attachment"
                     }
@@ -615,6 +631,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "AccessKey"
                     metadata.name = "ops-smtp-access-key"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-access-key"
                     }
@@ -625,6 +642,7 @@ _items = [
                     apiVersion = "secretsmanager.aws.m.upbound.io/v1beta1"
                     kind = "Secret"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "secrets-manager-secret"
                     }
@@ -638,6 +656,7 @@ _items = [
                     apiVersion = "secretsmanager.aws.m.upbound.io/v1beta1"
                     kind = "SecretVersion"
                     metadata.name = "ops-smtp-version"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "secrets-manager-secret-version"
                     }
@@ -729,6 +748,7 @@ _items = [
                     apiVersion = "sesv2.aws.m.upbound.io/v1beta1"
                     kind = "EmailIdentity"
                     metadata.name = "ops"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "email-identity"
                     }
@@ -821,6 +841,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "User"
                     metadata.name = "ops-smtp"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-user"
                     }
@@ -837,6 +858,7 @@ _items = [
                     apiVersion = "iam.aws.m.upbound.io/v1beta1"
                     kind = "Policy"
                     metadata.name = "ops-smtp-send-email"
+                    metadata.namespace = "default"
                     metadata.annotations = {
                         "crossplane.io/composition-resource-name" = "iam-policy"
                     }
